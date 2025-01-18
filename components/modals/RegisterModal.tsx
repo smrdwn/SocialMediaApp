@@ -1,8 +1,11 @@
 import useLoginModal from "@/hooks/useLoginModal";
 import { useCallback, useState } from "react";
 import Input from "../input";
+import { toast } from "react-hot-toast";
 import Modal from "../Modal";
 import useRegisterModal from "@/hooks/useRegisterModal";
+import axios from "axios";
+import { signIn } from "next-auth/react";
 
 const RegisterModal = () => {
     const loginModal = useLoginModal();
@@ -14,23 +17,45 @@ const RegisterModal = () => {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    const onToggle = useCallback(() => {
+        if (isLoading) return;
+
+        registerModal.onClose(); 
+        loginModal.onOpen();
+    }, [isLoading, loginModal, registerModal]);
+
     const onSubmit = useCallback(async () => {
         try {
             setIsLoading(true);
-            // TODO: ADD REGISTER AND LOG IN
+            
+            await axios.post('/api/register', {
+                email,
+                password,
+                username, 
+                name,
+            });
+
+            toast.success('Account created.');
+
+            signIn('credentials', {
+                email,
+                password,
+            });
 
             registerModal.onClose();
         } catch (error) {
             console.log(error);
+            toast.error(' Something went wrong.');
         } finally {
             setIsLoading(false);
         }
-    }, [registerModal]);
+    }, [email, name, password, registerModal, username]);
 
     const bodyContent = (
         <div className="flex flex-col gap-4">
             <Input 
                 placeholder="Email"
+                type="email"
                 onChange={(e) => setEmail(e.target.value)}
                 value={email}
                 disabled={isLoading}
@@ -49,10 +74,29 @@ const RegisterModal = () => {
             />
             <Input 
                 placeholder="Password"
+                type="password"
                 onChange={(e) => setPassword(e.target.value)}
                 value={password}
                 disabled={isLoading}
             />
+        </div>
+    );
+
+    const footerContent = (
+        <div className="text-neutral-400 text-center mt-4">
+            <p>Already have an account?
+                <span
+                    onClick={onToggle}
+                    className="
+                    text-white
+                    cursor-pointer
+                    hover:underline
+                    pl-1
+                    "
+                >
+                    Sign in
+                </span>
+            </p>
         </div>
     );
 
@@ -65,6 +109,7 @@ const RegisterModal = () => {
             onClose={registerModal.onClose}
             onSubmit={onSubmit}
             body={bodyContent}
+            footer={footerContent}
         />
     );
 }
